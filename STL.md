@@ -86,16 +86,6 @@ static void* allocate(size_t n){
 }
 ```
 
-### 释放内存
-
-#### 一级配置器
-
-```c++
-static void deallocate(void* p, size_t /* n */){
-    free(p);
-}
-```
-
 #### 次级配置器(内存池)
 
 ```c++
@@ -104,6 +94,18 @@ union obj{
     char client_data[1];
 };
 // 利用这个结构体，一个8bits的数据既可以当指针又可以当8bits大小的数据
+```
+
+
+
+### 释放内存
+
+#### 一级配置器
+
+```c++
+static void deallocate(void* p, size_t /* n */){
+    free(p);
+}
 ```
 
 
