@@ -116,3 +116,59 @@ vector类将其元素保存在连续内存中。为了获得可接受的性能�
 
 - 如果有，成员函数会在下一个可用位置构造一个对象
 - 如果没有，vector会重新分配空间，它获得新的空间，并将已有元素移到新空间中，释放旧空间，并添加新元素。
+
+
+
+## emplace和push
+
+push_back是vector的一个**普通成员函数**，有2个重载，分别接受左值和右值。
+
+emplace_back是vector的一个**模板成员函数**，没有重载，接受左值和右值。只有将emplace_back写成模板成员函数，它的参数才可以写成Args &&的形式，才可以激活万能引用，这样才既可以接受左值，又可以接受右值。
+
+```c++
+template<typename _Tp, typename _Alloc>
+template<typename... _Args>
+void vector<_Tp, _Alloc>::emplace_back(_Args&&... __args)
+{
+    if (this->_M_impl._M_finish != this->_M_impl._M_end_of_storage)
+    {
+        // _Alloc_traits::construct 是一个模板函数，用于在指定的内存位置上构造对象
+        // this->_M_impl是一个用于存储数据的一个成员变量
+        // this->_M_impl._M_finish 是一个指向 vector 中当前末尾元素的迭代器
+        // std::forward<_Args>(__args)... 将 __args 参数以原始的值类别（左值或右值）转发给 construct 函数
+        _Alloc_traits::construct(this->_M_impl, this->_M_impl._M_finish,std::forward<_Args>(__args)...);
+        ++this->_M_impl._M_finish;
+    }
+    else
+        _M_emplace_back_aux(std::forward<_Args>(__args)...);
+}
+```
+
+`..` 中的三个点号是C++中的展开操作符（unpacking operator）。展开操作符的作用是将参数包（parameter pack）中的所有元素展开成独立的参数，以便传递给函数或模板。
+
+
+
+
+
+STL源码剖析中的push_back
+
+```c++
+void push_back(const T& x){
+    if(finish!=end_of_storage){ //还有备用空间
+        construct(finish,x);
+        ++finish;
+    }else{
+        insert_aux(end(),x);
+    }
+}
+```
+
+
+
+
+
+
+
+1、接受const T&、T&&作为参数时，push_back和emplace_back是一样的效果。如果我们查看下vector的源代码，会发现其实push_back内部也是调用的emplace_back。
+
+2、接受A的其他版本的构造函数的参数时，只能使用emplace_back，并且非常高效，期间不会发生临时变量的生成和拷贝。
